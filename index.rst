@@ -252,7 +252,7 @@ The observing conditions for the science images were taken unmodified from OpSim
 Results
 =======
 
-Deep coadd source measurements
+Deep Coadd Source Measurements
 ------------------------------
 When the input exposures used to construct the DCR model have variable seeing, the sources begin to smear out.
 This smearing happens to some extent with CompareWarpAssembleCoaddTask as well, but because extreme values are clipped the effect is reduced.
@@ -263,21 +263,28 @@ Thus the source measurements were performed at exactly the same locations for al
 To compare different runs, I first removed any sources that were flagged in any of them.
 Then I normalized the aperture fluxes by dividing by the PSF flux from the constant seeing run, and took the median from all of the unflagged sources.
 In the figure below I plot that normalized aperture flux as a function of aperture size for several of the simulations with different seeing ranges, and for both the CompareWarp and DCR coadd algorithm.
-In the case of constant seeing (the darkest solid and dashed lines) the aperture flux is very similar between the two algorithms.
-However, as the range of seeing in the input images increases, the additional smearing of the DCR image shows up as a gradual decrease in the measured flux in each aperture.
+
 
 .. figure:: /_static/Aperture_flux_comparison.png
    :name: fig-aperture_flux
 
    The fraction of the constant-seeing case PSF flux detected within each aperture for deep coadded images constructed with either DcrAssembleCoaddTask or CompareWarpAssembleCoaddTask, and for different ranges of seeing in the input images.
 
-Image difference residuals
+In the case of constant seeing (the darkest solid and dashed lines) the aperture flux is very similar between the two algorithms.
+However, as the range of seeing in the input images increases, the additional smearing of the DCR image shows up as a gradual decrease in the measured flux in each aperture.
+The CompareWarp-built coadds, on the other hand, maintain a constant measured flux within a nine arcsecond aperture, and closely match the PSF flux at that point.
+This suggests that the ratio of the nine arcsecond aperture flux to the constant-seeing PSF flux is a good metric for the loss of flux due to varying PSF widths for the DCR coadds, and this value remains close to one for seeing ranges up to 0.60" - 0.88".
+Thus, as long as the PSF size of the worst seeing observation is no more than 50% greater than the size of the PSF of the best seeing observation, it should be appropriate to use DcrAssembleCoaddTask in its present form.
+
+Image Difference Residuals
 --------------------------
+
 The motivation for creating the DCR model was to make better templates for image differencing, which I tested using the 24 science images from Table 3 above.
-
-Below, I've chosen a small region from one science image (visit 2010011 in Table 3 above), and compare the residual images using the two algorithms and three different ranges of seeing .
-
-Reference the table via `Image difference residuals`_
+In `Image Difference Residuals`_ below, I chose a small region from one science image (visit 2010011 in Table 3 above), and compare the residual images using the two algorithms and three different ranges of seeing.
+For observations like this one at airmasses above 1.2, the residuals are quite bad if the template is built without accounting for DCR, even in the constant seeing case.
+Thus, for these simulated images at least, the difference between the two types of template is much greater than the differences between any of the ranges of seeing of the input images, even for the case with the greatest variation in seeing.
+For image differencing, this suggests that the DCR-matched template should be used if there will be any moderate- to high-airmass observations, even if the seeing range of the input observations is highly variable.
+For a quantitative comparison of the two algorithms using science images with a wide range of airmasses, see `Image Difference Source Detection`_ below.
 
 .. list-table:: Image difference residuals
    :header-rows: 1
@@ -315,11 +322,11 @@ Reference the table via `Image difference residuals`_
      - .. figure:: /_static/Diffim_residuals_deep_0.60-1.29_seeing.png
      - .. figure:: /_static/Diffim_residuals_DCR_0.60-1.29_seeing.png
 
-Image difference source detection
+Image Difference Source Detection
 ---------------------------------
 The simulated images contained no real variable sources, so every detection in the image difference is a false detection and the fewer dipoles or other detections the better.
 The improved `image difference residuals`_ above correspond to an equally improved reduction in the number of detected dipoles and false detections, which are plotted below.
-In the plots, the number of dipoles or sources in the image differences using CompareWarp templates is taken as the baseline, which is compared to the number of dipoles or sources in the equivalent image difference using DCR-matched templates.
+In the plots below, the number of dipoles or sources in the image differences using CompareWarp templates is taken as the baseline, which is compared to the number of dipoles or sources in the equivalent image difference using DCR-matched templates.
 It is interesting to note that the reduction in the number of dipoles approaches 100% above airmass 1.2, but the reduction in the number of sources plateaus at ~80%.
 This captures the sources that were not well fit by either algorithm, as well as the sources that were measured as dipoles in the CompareWarp residuals but had a more complicated structure in the DCR residual.
 
@@ -337,6 +344,7 @@ This captures the sources that were not well fit by either algorithm, as well as
 
 Conclusions
 ===========
+.. In the conclusions I'd add a connection back to the survey strategy--what fraction of images are usable for template construction using the constant-seeing algorithm given the results above?
 
 The DCR model generates better templates for image differencing for all ranges of seeing I tested, and has a correspondingly reduced number of false sources detected in the image difference.
 Above airmass 1.1, the number of false detections in these simulations was cut in half, even in the run with the largest range of seeing.
@@ -344,7 +352,60 @@ This suggests that if the range of airmasses is greater than 0.1, the DCR model 
 A caution is that the DCR algorithm appears to lose some of the flux from sources detected on the coadd when the seeing range of the input images is above roughly 50%.
 If it was extended to account for variable seeing, however, that flux would be better fit and it is likely that the matched templates would be further improved.
 
+Scheduler Implications
+----------------------
+A typical year of LSST g-band observations is planned to include an average of 8 observations per field.
+The expected distribution of seeing values for those observations from OpSim ranges from 0.456" to 1.668", with a typical value of ~0.7" as seen in Figure 4 below.
 
+.. figure:: /_static/Opsim_year1_seeing_distribution.png
+   :name: fig-opsim_seeing
+
+   Histogram of seeing values for the first year of LSST operations, for g-band.
+
+
+In order to build DCR-matched templates using just the data from the first year we need a minimum of 5 observations, with the worst seeing no more than 50% greater than the best seeing for each field.
+Given the expected distribution of seeing values, this means that we would need to cut exceptionally good seeing observations as well as poor ones in order to keep the ratio of the worst to the best under 50%, as found in `Deep Coadd Source Measurements`_.
+In Table 5, I have computed the average number of acceptible observations we would have for a typical field given the tolerance set on that ratio of the worst to the best seeing values, and I list the associated range of seeing values.
+
+.. list-table:: OpSim expected seeing distribution
+   :header-rows: 1
+   :stub-columns: 0
+   :widths: 10 10 10 10
+   
+   * - Seeing tolerance
+     - Seeing range
+     - Percent usable
+     - Average number usable
+   * - 50%
+     - 0.636" - 0.954"
+     - 66.7%
+     - 5.33
+   * - 60%
+     - 0.626" - 1.002"
+     - 73.8%
+     - 5.9
+   * - 70%
+     - 0.596" - 1.013"
+     - 79.4%
+     - 6.35
+   * - 80%
+     - 0.566" - 1.019"
+     - 84.1%
+     - 6.72
+   * - 90%
+     - 0.566" - 1.075"
+     - 87.6%
+     - 7.01
+   * - 100%
+     - 0.546" - 1.092"
+     - 90.4%
+     - 7.24
+
+With the limitation of a 50% range of seeing, we would achieve the minimum number of 5 observations per field, but only on average.
+That means that many fields could be left with insufficient observations to construct DCR-matched templates from the first year of data, though there should be plenty after year 2.
+If we were to relax the constraint on the seeing so that the worst seeing observation of a field was allowed to be twice the best seeing (a seeing tolerance of 100% in the chart), then we would be able to use all or all but one of the observations for most fields.
+For image differencing, the results of `Image Difference Source Detection`_ suggest that we could use the looser tolerance with DcrAssembleCoaddTask as it is now and achieve a significant reduction in the number of dipoles and false detections.
+However, if we were able to include variable PSFs in the calculation of the DCR model, then we should be able to achieve that reduction without worrying about losing flux, and without having to exclude the observations with the best seeing.
 
 .. [1] with the exception that the observations were forced to be on the local Meridian. This simplification was due to a bug discovered in the simulator that resulted in incorrect parallactic angles off the Meridian. 
 
