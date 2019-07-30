@@ -357,10 +357,10 @@ Scheduler Implications
 A typical year of LSST g-band observations is planned to include an average of 8 observations per field.
 The expected distribution of seeing values for those observations from OpSim ranges from 0.456" to 1.668", with a typical value of ~0.7" as seen in Figure 4 below.
 
-.. figure:: /_static/Opsim_year1_seeing_distribution.png
+.. figure:: /_static/Opsim_year1_seeing_distribution2.png
    :name: fig-opsim_seeing
 
-   Histogram of seeing values for the first year of LSST operations, for g-band.
+   Histogram of seeing values for the first year of LSST g-band observations, with the cumulative distribution overplotted in red.
 
 
 In order to build DCR-matched templates using just the data from the first year we need a minimum of 5 observations, with the worst seeing no more than 50% greater than the best seeing for each field.
